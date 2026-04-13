@@ -1,7 +1,7 @@
 <template>
 <v-container>
 <v-row justify="center">
-<h1>Главная страница</h1>
+<h1>Заказы</h1>
 </v-row>
 </v-container>
 </template>
