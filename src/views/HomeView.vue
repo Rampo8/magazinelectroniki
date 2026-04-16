@@ -1,12 +1,13 @@
 <template>
   <v-container>
     <v-carousel>
-      <v-carousel-item
-        v-for="ad in ads"
-        :key="ad.id"
-        :src="ad.src"
-        cover
-      >
+     
+       <v-carousel-item
+	v-for="ad in promoAds"
+  :key="ad.id"
+  :src="ad.src">
+
+      
       <div class="ad-link">
 	<v-btn class="error" :to="'/ad/' + ad.id">
 		{{ ad.title }}
@@ -73,40 +74,15 @@
 </template>
 <script>
 export default {
-  data () {
-    return {
-      ads:[
-        {
-          title:"First",
-          desc:"First Desc",
-          promo: true,
-          src: "https://cdn.vuetifyjs.com/images/carousel/squirrel.jpg",
-          id:"1"
-        },
-        {
-          title:"Second",
-          desc:"Second Desc",
-          promo: true,
-          src: "https://cdn.vuetifyjs.com/images/carousel/sky.jpg",
-          id:"2"
-        },
-        {
-          title:"Third",
-          desc:"Thitd Desc",
-          promo: true,
-          src: "https://cdn.vuetifyjs.com/images/carousel/bird.jpg",
-          id:"3"
-        },
-        {
-          title:"Fouth",
-          desc:"Fouth Desc",
-          promo: true,
-          src: "https://cdn.vuetifyjs.com/images/carousel/planet.jpg",
-          id:"4"
-        }
-      ]
-    }
-  }
+computed:  { 
+	promoAds() {
+		return this.$store.getters.promoAds
+	},
+	ads() {
+		return this.$store.getters.ads
+	}
+}
+
 }
 </script>
 <style scoped>
