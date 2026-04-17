@@ -1,51 +1,55 @@
-<template> 
-	<v-container>
-		<v-row justify="center">
-<v-col cols="12" sm="8" lg="6">
-
-			<v-card class="elevetion-12">
-			<v-toolbar dark color="primary">
-				<v-toolbar-title>Login</v-toolbar-title>
-</v-toolbar>
-				<v-card-text>
-					<v-form v-model="valid" ref="form" validation>
-					<v-text-field
-					prepend-icon="mdi-account" 
-					name="email" 
-					label="Email" 
-					type="email" 
-					v-model="email"
-					:rules="emailRules" 
-					>
-					</v-text-field>
-					<v-text-field  
-					prepend-icon="mdi-lock" 
-					name="password" 
-					label="Password" 
-					type="password" 
-					v-model="password"
-					:rules="passwordRules" 
-					></v-text-field>
-					</v-form> 
-				</v-card-text>
-				<v-card-actions>
-					<v-spacer></v-spacer>
-					<v-btn 
-					color="primary"
-					@click="onSubmit"
-					:disabled="!valid"
-					>
-						Login
-					</v-btn>
-				</v-card-actions>	
-			</v-card>
-			</v-col>
-		</v-row> 
-	</v-container>
+<template>
+  <v-container>
+    <v-row justify="center">
+      <v-col cols="12" sm="8" lg="6">
+        <v-card class="elevation-12">
+          <v-toolbar dark color="primary">
+            <v-toolbar-title>Login</v-toolbar-title>
+          </v-toolbar>
+          
+          <v-card-text>
+            <v-form v-model="valid" ref="form" lazy-validation>
+              <v-text-field
+                prepend-icon="mdi-account"
+                name="email"
+                label="Email"
+                type="email"
+                v-model="email"
+                :rules="emailRules"
+              ></v-text-field>
+              
+              <v-text-field
+                prepend-icon="mdi-lock"
+                name="password"
+                label="Password"
+                type="password"
+                v-model="password"
+                :rules="passwordRules"
+              ></v-text-field>
+            </v-form>
+          </v-card-text>
+          
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <!-- 🔹 14.3. Кнопка с лоудером и блокировкой -->
+            <v-btn
+              color="primary"
+              @click="onSubmit"
+              :loading="loading"
+              :disabled="!valid || loading"
+            >
+              Login
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
+
 <script>
 export default {
-  data () {
+  data() {
     return {
       email: "",
       password: "",
@@ -56,18 +60,35 @@ export default {
       ],
       passwordRules: [
         v => !!v || 'Password is required',
-        v => (v && v.length >= 6) || 'Password must be more or equel than 6 characters'
+        v => (v && v.length >= 6) || 'Password must be more or equal than 6 characters'
       ]
     }
   },
+  
+  // 🔹 14.3. Computed свойство для получения статуса загрузки
+  computed: {
+    loading() {
+      // Примечание: используем namespaced путь к shared модулю
+      return this.$store.getters['shared/loading']
+    }
+  },
+  
   methods: {
-    onSubmit(){
-      if (this.$refs.form.validate()){
+    // 🔹 14.2. Отправка action loginUser
+    onSubmit() {
+      if (this.$refs.form.validate()) {
         const user = {
           email: this.email,
           password: this.password
         }
-        console.log(user)
+        
+        this.$store.dispatch('user/loginUser', user)
+          .then(() => {
+            this.$router.push("/")
+          })
+          .catch((err) => {
+            console.log(err)
+          })
       }
     }
   }
