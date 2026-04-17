@@ -16,6 +16,7 @@
                 type="email"
                 v-model="email"
                 :rules="emailRules"
+                :disabled="loading"
               ></v-text-field>
               
               <v-text-field
@@ -25,6 +26,7 @@
                 type="password"
                 v-model="password"
                 :rules="passwordRules"
+                :disabled="loading"
               ></v-text-field>
               
               <v-text-field
@@ -34,16 +36,19 @@
                 type="password"
                 v-model="confirmPassword"
                 :rules="confirmPasswordRules"
+                :disabled="loading"
               ></v-text-field>
             </v-form>
           </v-card-text>
           
           <v-card-actions>
             <v-spacer></v-spacer>
+            <!-- 🔹 Кнопка с loading и disabled -->
             <v-btn
               color="primary"
               @click="onSubmit"
-              :disabled="!valid"
+              :loading="loading"
+              :disabled="!valid || loading"
             >
               Create Account
             </v-btn>
@@ -77,15 +82,30 @@ export default {
     }
   },
   
+  computed: {
+    // 🔹 Получение loading из shared module
+    loading() {
+      return this.$store.getters['shared/loading']
+    }
+  },
+  
   methods: {
-    onSubmit() {
+    async onSubmit() {
       if (this.$refs.form.validate()) {
         const user = {
           email: this.email,
           password: this.password
         }
-        // 🔹 Отправка action регистрации в store
-        this.$store.dispatch('registerUser', user)
+        
+        try {
+          // 🔹 Dispatch с async/await
+          await this.$store.dispatch('user/registerUser', user)
+          // 🔹 Успех — редирект
+          this.$router.push("/")
+        } catch (err) {
+          // 🔹 Ошибка обрабатывается в store и отображается через snackbar
+          console.log(err)
+        }
       }
     }
   }

@@ -1,4 +1,3 @@
-// Класс User для типизации данных пользователя
 class User {
   constructor(id, email, password) {
     this.id = id
@@ -8,28 +7,46 @@ class User {
 }
 
 export default {
+  namespaced: true,
+  
   state: {
     user: null
   },
   
   mutations: {
-    // Установка пользователя после регистрации
     setUser(state, payload) {
       state.user = payload
     }
   },
   
   actions: {
-    // Регистрация пользователя
-    registerUser({ commit }, { email, password }) {
-      // Здесь будет запрос на сервер для регистрации
-      // Временно создаём пользователя с тестовым ID
-      commit('setUser', new User(1, email, password))
+    // 🔹 Рефакторинг с async/await и shared module
+    async registerUser({ commit }, { email, password }) {
+      commit('shared/clearError', null, { root: true })
+      commit('shared/setLoading', true, { root: true })
+      
+      // Имитация запроса на сервер
+      let isRequestOk = true
+      let promise = new Promise(function(resolve) {
+        setTimeout(() => resolve('Done'), 3000)
+      })
+      
+      if (isRequestOk) {
+        await promise.then(() => {
+          commit('setUser', new User(1, email, password))
+          commit('shared/setLoading', false, { root: true })
+        })
+      } else {
+        await promise.then(() => {
+          commit('shared/setLoading', false, { root: true })
+          commit('shared/setError', 'Ошибка регистрации')
+          throw 'Упс... Ошибка регистрации'
+        })
+      }
     }
   },
   
   getters: {
-    // Получение текущего пользователя
     user(state) {
       return state.user
     }
