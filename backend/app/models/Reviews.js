@@ -1,0 +1,19 @@
+module.exports = (sequelize, Sequelize) => {
+  const Review = sequelize.define("review", {
+    client_id: { type: Sequelize.INTEGER, references: { model: 'clients', key: 'id' } },
+    product_id: { type: Sequelize.INTEGER, references: { model: 'products', key: 'id' } },
+    rating: { type: Sequelize.INTEGER, allowNull: false },
+    comment: { type: Sequelize.TEXT }
+  }, {
+    tableName: 'reviews',
+    timestamps: true,
+    underscored: true
+  });
+
+  Review.associate = function(models) {
+    Review.belongsTo(models.client, { foreignKey: 'client_id', as: 'client' });
+    Review.belongsTo(models.product, { foreignKey: 'product_id', as: 'product' });
+  };
+
+  return Review;
+};
