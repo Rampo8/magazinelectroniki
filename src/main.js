@@ -4,16 +4,17 @@ import vuetify from './plugins/vuetify'
 import { loadFonts } from './plugins/webfontloader'
 import router from './router'
 import store from './store'
+import BuyAdModal from './views/Shared/BuyAdModal.vue' // 🔹 Импорт
 
 loadFonts()
 
 const app = createApp(App)
 
-// 🔹 15.1. Восстановление сессии перед монтированием приложения
-store.dispatch('user/autoLogin')
+app.use(router)
+app.use(store)
+app.use(vuetify)
 
-app
-  .use(router)
-  .use(store)
-  .use(vuetify)
-  .mount('#app')
+// 🔹 Глобальная регистрация для использования в любом компоненте без импорта
+app.component('buy-ad-modal', BuyAdModal)
+
+app.mount('#app')
