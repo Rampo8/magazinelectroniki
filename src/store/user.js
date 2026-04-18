@@ -1,60 +1,68 @@
 class User {
-  constructor(id, email, password) {
+  constructor(id, email) {
     this.id = id
     this.email = email
-    this.password = password
   }
 }
 
 export default {
   namespaced: true,
-  
+
   state: {
     user: null
   },
-  
+
   mutations: {
     setUser(state, payload) {
       state.user = payload
-      // Опционально: сохраняем сессию в localStorage
       if (payload) {
-        localStorage.setItem('user', JSON.stringify({
-          id: payload.id,
-          email: payload.email
-        }))
+        localStorage.setItem('user', JSON.stringify({ id: payload.id, email: payload.email }))
       } else {
         localStorage.removeItem('user')
       }
-    },
-    // 🔹 15.3. Очистка пользователя при выходе
-    clearUser(state) {
-      state.user = null
     }
   },
-  
+
   actions: {
-    async registerUser({ commit }, { email, password }) { /* ... логика из п.14 ... */ },
-    async loginUser({ commit }, { email, password }) { /* ... логика из п.14 ... */ },
-    
-    // 🔹 15.3. Действие выхода
-    logoutUser({ commit }) {
-      commit('clearUser')
+    // 🔥 Убран unused _password из деструктуризации
+    async registerUser({ commit }, { email }) {
+      commit('shared/clearError', null, { root: true })
+      commit('shared/setLoading', true, { root: true })
+
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const user = new User(Date.now().toString(), email)
+      commit('setUser', user)
+      commit('shared/setLoading', false, { root: true })
     },
 
-    // 🔹 15.1. Авто-логин при загрузке приложения (восстановление сессии)
+    // 🔥 Убран unused _password из деструктуризации
+    async loginUser({ commit }, { email }) {
+      commit('shared/clearError', null, { root: true })
+      commit('shared/setLoading', true, { root: true })
+
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const user = new User("user123", email)
+      commit('setUser', user)
+      commit('shared/setLoading', false, { root: true })
+    },
+
+    logoutUser({ commit }) {
+      commit('setUser', null)
+    },
+
     autoLogin({ commit }) {
-      const savedUser = localStorage.getItem('user')
-      if (savedUser) {
-        commit('setUser', JSON.parse(savedUser))
+      const saved = localStorage.getItem('user')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        commit('setUser', new User(parsed.id, parsed.email))
       }
     }
   },
-  
+
   getters: {
-    user(state) { return state.user },
-    // 🔹 15.1. Проверка авторизации
-    isUserLoggedIn(state) {
-      return state.user !== null
-    }
+    user: (state) => state.user,
+    isUserLoggedIn: (state) => state.user !== null
   }
 }

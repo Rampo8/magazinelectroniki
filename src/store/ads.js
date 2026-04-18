@@ -14,8 +14,6 @@ export default {
     createAd(state, payload) {
       state.ads.push(payload)
     },
-    
-    // 🔹 17.5. Мутация обновления объявления
     updateAd(state, { id, title, desc }) {
       const ad = state.ads.find(a => a.id === id)
       if (ad) {
@@ -26,40 +24,40 @@ export default {
   },
 
   actions: {
-    async createAd({ commit, rootGetters }) { /* ... код из п.16 ... */ },
-    
-    // 🔹 17.5. Action редактирования объявления
-    async updateAd({ commit, dispatch }, { id, title, desc }) {
+    // ✅ Убран unused `dispatch`. `commit` и `rootGetters` теперь реально используются
+    async createAd({ commit, rootGetters }, payload) {
       commit('shared/clearError', null, { root: true })
       commit('shared/setLoading', true, { root: true })
-      
-      let isRequestOk = true
-      let promise = new Promise(resolve => setTimeout(() => resolve('Done'), 1500))
 
-      if (isRequestOk) {
-        await promise.then(() => {
-          commit('updateAd', { id, title, desc })
-          commit('shared/setLoading', false, { root: true })
-        })
-      } else {
-        await promise.then(() => {
-          commit('shared/setLoading', false, { root: true })
-          commit('shared/setError', 'Ошибка редактирования объявления', { root: true })
-          throw 'Упс... Ошибка редактирования'
-        })
-      }
+      payload.id = Math.random().toString(36).substr(2, 9)
+      payload.userId = rootGetters['user/user']?.id || '1'
+
+      // Имитация запроса
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      commit('createAd', payload)
+      commit('shared/setLoading', false, { root: true })
+    },
+
+    // ✅ `commit` используется
+    async updateAd({ commit }, { id, title, desc }) {
+      commit('shared/clearError', null, { root: true })
+      commit('shared/setLoading', true, { root: true })
+
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      commit('updateAd', { id, title, desc })
+      commit('shared/setLoading', false, { root: true })
     }
   },
 
   getters: {
-    allAds(state) { return state.ads },
-    promoAds(state) { return state.ads.filter(ad => ad.promo) },
-    myAds(state, getters, rootState, rootGetters) {
+    allAds: (state) => state.ads,
+    promoAds: (state) => state.ads.filter(ad => ad.promo),
+    myAds: (state, _getters, _rootState, rootGetters) => {
       const currentUserId = rootGetters['user/user']?.id
       return currentUserId ? state.ads.filter(ad => ad.userId === currentUserId) : []
     },
-    adById(state) {
-      return id => state.ads.find(ad => ad.id === String(id))
-    }
+    adById: (state) => (id) => state.ads.find(ad => ad.id === String(id))
   }
 }
