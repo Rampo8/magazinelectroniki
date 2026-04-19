@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Подключаем базу данных
-const db = require("./app/models/index.js");   // ← Важно: правильный путь
+const db = require("./models/index.js");   // ← Важно: правильный путь
 
 // Тест подключения к БД (по желанию)
 db.sequelize.authenticate()
@@ -34,9 +34,9 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Подключаем роуты (примеры)
-app.use("/api/users", require("./app/routes/User.routes.js"));        // если есть
-app.use("/api/categories", require("./app/routes/category.routes"));
-app.use("/api/products", require("./app/routes/product.routes"));
+app.use("/api/users", require("./routes/User.routes.js"));        // если есть
+app.use("/api/categories", require("./routes/categories.routes"));
+app.use("/api/products", require("./routes/product.routes.js"));
 
 // Базовый маршрут
 app.get("/", (req, res) => {

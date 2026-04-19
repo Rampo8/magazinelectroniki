@@ -1,5 +1,5 @@
 module.exports = app => {
-  const controller = require("./controllers/categories.controller.js");
+  const controller = require("../backend/app/controllers/Categories.controller.js.js");
   const router = require("express").Router();
 
   // CRUD
