@@ -1,68 +1,52 @@
-// backend/server.js
-require('dotenv').config(); // ← Обязательно в самом начале!
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
-const express = require('express');
-const cors = require('cors');
+dotenv.config();   // загружаем .env
+
 const app = express();
-const db = require('./app/models');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
 
-// 🗄️ Синхронизация БД
-db.sequelize.sync()
-  .then(() => console.log('✅ БД синхронизирована'))
-  .catch(err => console.error('❌ Ошибка синхронизации БД:', err));
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 🔧 Middleware
-app.use(cors({ origin: '*' })); // Разрешаем CORS для фронтенда
-app.use(express.json()); // Парсим JSON
-app.use(express.urlencoded({ extended: true })); // Парсим form-data
+// Подключаем базу данных
+const db = require("./app/models/index.js");   // ← Важно: правильный путь
 
-// 🔗 Подключаем маршруты
-require('./app/routes/clients.routes')(app);
-require('./app/routes/Addresses.routes')(app);
-require('./app/routes/Categories.routes')(app);
-require('./app/routes/Product.routes')(app);
-require('./app/routes/Order.routes')(app);
-require('./app/routes/OrderItem.routes')(app);
-require('./app/routes/Reviews.routes')(app);
-// ➕ Добавьте сюда маршрут для пользователей:
-// require('./app/routes/users.routes')(app);
+// Тест подключения к БД (по желанию)
+db.sequelize.authenticate()
+  .then(() => {
+    console.log("✅ Подключение к PostgreSQL успешно!");
+  })
+  .catch(err => {
+    console.error("❌ Ошибка подключения к базе:", err);
+  });
 
-// 📚 Конфигурация Swagger (API Docs)
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Trade API',
-      version: '1.0.0',
-      description: 'API documentation for Trade App',
-    },
-    servers: [
-      {
-        url: `http://localhost:${process.env.NODE_DOCKER_PORT || 8080}`,
-      },
-    ],
-  },
-  apis: ['./app/routes/*.js'], // Документация из комментариев в маршрутах
-};
+// Синхронизация моделей (только для разработки!)
+// В продакшене лучше использовать миграции (Sequelize CLI)
+if (process.env.NODE_ENV === "development") {
+  db.sequelize.sync({ alter: true })   // или force: true (осторожно — удаляет данные!)
+    .then(() => {
+      console.log("✅ Все модели синхронизированы");
+    })
+    .catch(err => console.log("Ошибка синхронизации:", err));
+}
 
-const specs = swaggerJsdoc(options);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+// Подключаем роуты (примеры)
+app.use("/api/users", require("./app/routes/User.routes.js"));        // если есть
+app.use("/api/categories", require("./app/routes/category.routes"));
+app.use("/api/products", require("./app/routes/product.routes"));
 
-// ❌ Обработка 404
-app.use((req, res) => {
-  res.status(404).send({ message: 'Маршрут не найден' });
+// Базовый маршрут
+app.get("/", (req, res) => {
+  res.json({ message: "Магазин электроники API работает!" });
 });
 
-// 💥 Глобальный обработчик ошибок
-app.use((err, req, res, next) => {
-  console.error('🔥 Глобальная ошибка:', err.stack);
-  res.status(500).send({ message: 'Внутренняя ошибка сервера' });
-});
-
-// 🚀 Запуск сервера
-const PORT = process.env.NODE_DOCKER_PORT || 8080;
+// Запуск сервера
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🎯 Сервер запущен на порту ${PORT}`);
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });
+
+module.exports = app;

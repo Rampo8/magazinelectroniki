@@ -1,39 +1,44 @@
-
 const dbConfig = require("../config/db.config.js");
 const Sequelize = require("sequelize");
 
-const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
-  host: dbConfig.HOST,
-  port: dbConfig.port || 5432,
-  dialect: dbConfig.dialect,
-  define: {
-    timestamps: true,      // ← КРИТИЧНОЕ ИСПРАВЛЕНИЕ
-    underscored: true,     // ← КРИТИЧНОЕ ИСПРАВЛЕНИЕ
-    freezeTableName: true
-  },
-  pool: {
-    max: dbConfig.pool.max,
-    min: dbConfig.pool.min,
-    acquire: dbConfig.pool.acquire,
-    idle: dbConfig.pool.idle
+const sequelize = new Sequelize(
+  dbConfig.DB,
+  dbConfig.USER,
+  dbConfig.PASSWORD,
+  {
+    host: dbConfig.HOST,
+    port: dbConfig.port || 5432,
+    dialect: dbConfig.dialect,
+    define: {
+      timestamps: true,
+      underscored: true,     // snake_case для полей (created_at и т.д.)
+      freezeTableName: false // важно: Sequelize будет использовать множественное число или имя из модели
+    },
+    pool: {
+      max: dbConfig.pool.max,
+      min: dbConfig.pool.min,
+      acquire: dbConfig.pool.acquire,
+      idle: dbConfig.pool.idle,
+    },
   }
-});
+);
 
 const db = {};
+
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-// Модели
-db.client        = require("./clients.js")(sequelize, Sequelize);
-db.category      = require("./Categories.js")(sequelize, Sequelize);
-db.address       = require("./Addresses.js")(sequelize, Sequelize);
-db.orderItem     = require("./OrderItems.js")(sequelize, Sequelize);
-db.order         = require("./Orders.js")(sequelize, Sequelize);
-db.paymentMethod = require("./PaymentMethods.js")(sequelize, Sequelize);
-db.product       = require("./Products.js")(sequelize, Sequelize);
-db.review        = require("./Reviews.js")(sequelize, Sequelize);
+// Подключаем существующие модели
+db.user      = require("./User.js")(sequelize, Sequelize);
+db.category  = require("./category.js")(sequelize, Sequelize);
+db.product   = require("./product.js")(sequelize, Sequelize);
 
-// Ассоциации
+// Здесь позже добавишь остальные модели, когда создашь файлы:
+// db.order = require("./order.js")(sequelize, Sequelize);
+// db.orderItem = require("./orderItem.js")(sequelize, Sequelize);
+// и т.д.
+
+// === Ассоциации (связи между моделями) ===
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
