@@ -1,32 +1,43 @@
 version: '3.8'
 services:
- postgresdb:
-   image: postgres
-   restart: unless-stopped
-   env_file: ./.env
-   environment:
-   - POSTGRES_USER=$POSTGRESDB_USER
-   - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
-   - POSTGRES_DB=$POSTGRESDB_DATABASE
-   ports:
-   - $POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT
-   volumes:
-   - db:/var/lib/postgres
- app:
-   depends_on:
-   - postgresdb
-   build: ./app 
-   restart: unless-stopped
-   env_file: ./.env
-   ports:
-   - $NODE_LOCAL_PORT:$NODE_DOCKER_PORT
-   environment:
-   - DB_HOST=postgresdb
-   - DB_USER=$POSTGRESDB_USER
-   - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
-   - DB_NAME=$POSTGRESDB_DATABASE
-   - DB_PORT=$POSTGRESDB_DOCKER_PORT
-   stdin_open: true
-   tty: true
+  postgresdb:
+    image: postgres:15
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - POSTGRES_USER=$POSTGRESDB_USER
+      - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - POSTGRES_DB=$POSTGRESDB_DATABASE
+    ports:
+      - "$POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT"
+    volumes:
+      # ✅ Путь исправлен на стандартный для PostgreSQL
+      - db_data:/var/lib/postgresql/data
+      # ✅ Раскомментируйте, если у вас есть папка с SQL-файлами для создания таблиц
+      # - ./init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRESDB_USER -d $POSTGRESDB_DATABASE"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    depends_on:
+      postgresdb:
+        condition: service_healthy # ✅ Ждёт реальной готовности БД, а не просто старта контейнера
+    build: ./app 
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - "$NODE_LOCAL_PORT:$NODE_DOCKER_PORT"
+    environment:
+      - DB_HOST=postgresdb
+      - DB_USER=$POSTGRESDB_USER
+      - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - DB_NAME=$POSTGRESDB_DATABASE
+      - DB_PORT=$POSTGRESDB_DOCKER_PORT
+    stdin_open: true
+    tty: true
+
 volumes:
- db:
+  db_data: # ✅ Переименовал для ясности
