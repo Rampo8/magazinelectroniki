@@ -1,5 +1,5 @@
 module.exports = app => {
-  const controller = require("../controllers/Product.controller.js");
+  const controller = require("../controllers/Products.controller.js");
   const router = require("express").Router();
 
   /**
@@ -20,16 +20,16 @@ module.exports = app => {
    *                 type: string
    *               price:
    *                 type: number
+   *               category:
+   *                 type: string
    *               quantity:
    *                 type: integer
-   *               category_id:
-   *                 type: integer
    *             example:
-   *               name: "Product1"
-   *               description: "Description"
-   *               price: 10.99
-   *               quantity: 100
-   *               category_id: 1
+   *               name: "Смартфон Xiaomi Redmi Note 12"
+   *               description: "Отличный смартфон с хорошей камерой"
+   *               price: 18999.99
+   *               category: "Смартфоны"
+   *               quantity: 45
    *     responses:
    *       201:
    *         description: Product created
@@ -42,53 +42,12 @@ module.exports = app => {
    * @swagger
    * /products:
    *   get:
-   *     summary: Retrieve a list of products with pagination
-   *     parameters:
-   *       - in: query
-   *         name: size
-   *         schema:
-   *           type: integer
-   *         description: "Page size (default: 10)"
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *         description: "Page number (default: 1)"
+   *     summary: Retrieve a list of all products
    *     responses:
    *       200:
-   *         description: A paged list of products
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 items:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: integer
-   *                       name:
-   *                         type: string
-   *                       description:
-   *                         type: string
-   *                       price:
-   *                         type: number
-   *                       quantity:
-   *                         type: integer
-   *                       category_id:
-   *                         type: integer
-   *                 totalItems:
-   *                   type: integer
-   *                 totalPages:
-   *                   type: integer
-   *                 currentPage:
-   *                   type: integer
-   *       500:
-   *         description: Error retrieving products
+   *         description: A list of products
    */
-  router.get("/", controller.getAllWithPager);
+  router.get("/", controller.findAll);
 
   /**
    * @swagger
@@ -101,31 +60,11 @@ module.exports = app => {
    *         required: true
    *         schema:
    *           type: integer
-   *         description: Product ID
    *     responses:
    *       200:
    *         description: Product found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: integer
-   *                 name:
-   *                   type: string
-   *                 description:
-   *                   type: string
-   *                 price:
-   *                   type: number
-   *                 quantity:
-   *                   type: integer
-   *                 category_id:
-   *                   type: integer
    *       404:
    *         description: Product not found
-   *       500:
-   *         description: Error retrieving product
    */
   router.get("/:id", controller.findOne);
 
@@ -140,7 +79,6 @@ module.exports = app => {
    *         required: true
    *         schema:
    *           type: integer
-   *         description: Product ID
    *     requestBody:
    *       required: true
    *       content:
@@ -148,29 +86,16 @@ module.exports = app => {
    *           schema:
    *             type: object
    *             properties:
-   *               name:
-   *                 type: string
-   *               description:
-   *                 type: string
-   *               price:
-   *                 type: number
-   *               quantity:
-   *                 type: integer
-   *               category_id:
-   *                 type: integer
-   *             example:
-   *               name: "Updated Product"
-   *               description: "Updated Description"
-   *               price: 15.99
-   *               quantity: 50
-   *               category_id: 2
+   *               name: { type: string }
+   *               description: { type: string }
+   *               price: { type: number }
+   *               category: { type: string }
+   *               quantity: { type: integer }
    *     responses:
    *       200:
    *         description: Product updated
    *       404:
    *         description: Product not found
-   *       500:
-   *         description: Error updating product
    */
   router.put("/:id", controller.update);
 
@@ -185,14 +110,11 @@ module.exports = app => {
    *         required: true
    *         schema:
    *           type: integer
-   *         description: Product ID
    *     responses:
    *       200:
    *         description: Product deleted
    *       404:
    *         description: Product not found
-   *       500:
-   *         description: Error deleting product
    */
   router.delete("/:id", controller.delete);
 
@@ -204,69 +126,109 @@ module.exports = app => {
    *     responses:
    *       200:
    *         description: All products deleted
-   *       500:
-   *         description: Error deleting products
    */
   router.delete("/", controller.deleteAll);
 
-  /**
-   * @swagger
-   * /products/{id}/categoryname:
-   *   get:
-   *     summary: Get category name for product
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: Product ID
-   *     responses:
-   *       200:
-   *         description: Category name
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: string
-   *       404:
-   *         description: Product or category not found
-   *       500:
-   *         description: Error retrieving category name
-   */
-  router.get("/:id/categoryname", controller.getCategoryName);
+  // ==================== НЕСТАНДАРТНЫЕ МАРШРУТЫ ====================
 
   /**
    * @swagger
-   * /products/{id}/category:
+   * /products/search/name:
    *   get:
-   *     summary: Get full category for product
+   *     summary: Search products by name (partial match)
    *     parameters:
-   *       - in: path
-   *         name: id
+   *       - in: query
+   *         name: name
    *         required: true
    *         schema:
-   *           type: integer
-   *         description: Product ID
+   *           type: string
    *     responses:
    *       200:
-   *         description: Category object
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: integer
-   *                 name:
-   *                   type: string
-   *                 description:
-   *                   type: string
-   *       404:
-   *         description: Product or category not found
-   *       500:
-   *         description: Error retrieving category
+   *         description: List of matching products
+   *       400:
+   *         description: Name parameter required
    */
-  router.get("/:id/category", controller.getCategory);
+  router.get("/search/name", controller.searchByName);
 
-  app.use('/api/products', router);
+  /**
+   * @swagger
+   * /products/category:
+   *   get:
+   *     summary: Get products by category
+   *     parameters:
+   *       - in: query
+   *         name: category
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: List of products in category
+   *       400:
+   *         description: Category parameter required
+   */
+  router.get("/category", controller.getByCategory);
+
+  /**
+   * @swagger
+   * /products/low-stock:
+   *   get:
+   *     summary: Get products with low stock (quantity < 10)
+   *     responses:
+   *       200:
+   *         description: List of low stock products
+   */
+  router.get("/low-stock", controller.getLowStockProducts);
+
+  /**
+   * @swagger
+   * /products/in-stock:
+   *   get:
+   *     summary: Get products that are in stock (quantity > 0)
+   *     responses:
+   *       200:
+   *         description: List of products in stock
+   */
+  router.get("/in-stock", controller.getInStockProducts);
+
+  /**
+   * @swagger
+   * /products/statistics/category:
+   *   get:
+   *     summary: Get statistics by category (count and average price)
+   *     responses:
+   *       200:
+   *         description: Category statistics
+   */
+  router.get("/statistics/category", controller.getCategoryStatistics);
+
+  /**
+   * @swagger
+   * /products/top-expensive:
+   *   get:
+   *     summary: Get most expensive products
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 5
+   *     responses:
+   *       200:
+   *         description: Top expensive products
+   */
+  router.get("/top-expensive", controller.getTopExpensiveProducts);
+
+  /**
+   * @swagger
+   * /products/recent:
+   *   get:
+   *     summary: Get recently added products
+   *     responses:
+   *       200:
+   *         description: List of recent products
+   */
+  router.get("/recent", controller.getRecentProducts);
+
+  app.use("/api/products", router);
 };
