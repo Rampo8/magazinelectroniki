@@ -1,12 +1,13 @@
-
+'use strict';
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Product extends Model {
     static associate(models) {
-      // Здесь можно добавить связи позже, например:
-      // Product.belongsToMany(models.User, { through: 'carts', as: 'users' });
-      // или связь с заказом и т.д.
+      Product.belongsTo(models.Category, {   // ✅ ОБЯЗАТЕЛЬНО
+        foreignKey: 'category_id',
+        as: 'category'
+      });
     }
   }
 
@@ -15,25 +16,22 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    description: {
-      type: DataTypes.TEXT
-    },
+    description: DataTypes.TEXT,
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
-    category: {
-      type: DataTypes.STRING,
+    category_id: {   // ✅ добавь это поле
+      type: DataTypes.INTEGER,
       allowNull: false
     },
     quantity: {
       type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
+      defaultValue: 0
     }
   }, {
     sequelize,
-    modelName: 'product',
+    modelName: 'Product',
     tableName: 'products',
     timestamps: true,
     underscored: true
