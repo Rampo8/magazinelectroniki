@@ -11,8 +11,8 @@ const sequelize = new Sequelize(
     dialect: dbConfig.dialect,
     define: {
       timestamps: true,
-      underscored: true,     // snake_case для полей (created_at и т.д.)
-      freezeTableName: false // важно: Sequelize будет использовать множественное число или имя из модели
+      underscored: true,
+      freezeTableName: false
     },
     pool: {
       max: dbConfig.pool.max,
@@ -28,21 +28,22 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-// Подключаем существующие модели
-db.user      = require("./User.js")(sequelize, Sequelize);
-db.category  = require("./category.js")(sequelize, Sequelize);
-db.product   = require("./product.js")(sequelize, Sequelize);
+// ✅ ВАЖНО: передаём Sequelize.DataTypes
+const DataTypes = Sequelize.DataTypes;
 
-// Здесь позже добавишь остальные модели, когда создашь файлы:
-// db.order = require("./order.js")(sequelize, Sequelize);
-// db.orderItem = require("./orderItem.js")(sequelize, Sequelize);
-// и т.д.
+// Подключаем модели
+db.User = require("./User.js")(sequelize, DataTypes);
+db.Category = require("./category.js")(sequelize, DataTypes);
+db.Product = require("./product.js")(sequelize, DataTypes);
 
-// === Ассоциации (связи между моделями) ===
+// Ассоциации
 Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
+  if (db[modelName]?.associate) {
     db[modelName].associate(db);
   }
 });
+
+// 🔍 Для отладки — видно, что реально подключилось
+console.log("📦 Загруженные модели:", Object.keys(db));
 
 module.exports = db;

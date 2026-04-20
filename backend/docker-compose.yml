@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgresdb:
-    image: postgres:15
+    image: postgres:17
     restart: unless-stopped
     env_file: ./.env
     environment:
@@ -11,20 +11,17 @@ services:
     ports:
       - "$POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT"
     volumes:
-      # ✅ Путь исправлен на стандартный для PostgreSQL
-      - db_data:/var/lib/postgresql/data
-      # ✅ Раскомментируйте, если у вас есть папка с SQL-файлами для создания таблиц
-      # - ./init-db:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/postgresql/data  # ✅ ИСПРАВЛЕНО
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRESDB_USER -d $POSTGRESDB_DATABASE"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRESDB_USER -d $$POSTGRESDB_DATABASE"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   app:
     depends_on:
       postgresdb:
-        condition: service_healthy # ✅ Ждёт реальной готовности БД, а не просто старта контейнера
+        condition: service_healthy
     build: ./app 
     restart: unless-stopped
     env_file: ./.env
@@ -36,8 +33,9 @@ services:
       - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
       - DB_NAME=$POSTGRESDB_DATABASE
       - DB_PORT=$POSTGRESDB_DOCKER_PORT
+      - NODE_ENV=development  # ✅ Добавили переменную
     stdin_open: true
     tty: true
 
 volumes:
-  db_data: # ✅ Переименовал для ясности
+  db_data:  # ✅ Переименовали для ясности

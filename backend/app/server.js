@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
-dotenv.config();   // загружаем .env
+dotenv.config();
 
 const app = express();
 
@@ -12,9 +12,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Подключаем базу данных
-const db = require("./models/index.js");   // ← Важно: правильный путь
+const db = require("./models");
 
-// Тест подключения к БД (по желанию)
+// 🔍 Проверка окружения
+console.log("NODE_ENV =", process.env.NODE_ENV);
+
+// 🔍 Проверка конфигурации БД
+console.log('📊 Имя БД:', db.sequelize.config.database);
+console.log('👤 Пользователь:', db.sequelize.config.username);
+console.log('🌐 Хост:', db.sequelize.config.host);
+console.log('🔌 Порт:', db.sequelize.config.port);
+
+// 🔌 Подключение к БД
 db.sequelize.authenticate()
   .then(() => {
     console.log("✅ Подключение к PostgreSQL успешно!");
@@ -23,19 +32,21 @@ db.sequelize.authenticate()
     console.error("❌ Ошибка подключения к базе:", err);
   });
 
-// Синхронизация моделей (только для разработки!)
-// В продакшене лучше использовать миграции (Sequelize CLI)
-if (process.env.NODE_ENV === "development") {
-  db.sequelize.sync({ alter: true })   // или force: true (осторожно — удаляет данные!)
-    .then(() => {
-      console.log("✅ Все модели синхронизированы");
-    })
-    .catch(err => console.log("Ошибка синхронизации:", err));
-}
+// 🧠 ВАЖНО: всегда синхронизируем (для разработки)
+db.sequelize.sync({ alter: true })
+  .then(() => {
+    console.log("✅ Все модели синхронизированы");
+  })
+  .catch(err => {
+    console.error("❌ Ошибка синхронизации:", err);
+  });
 
-// Подключаем роуты (примеры)
-app.use("/api/users", require("./routes/User.routes.js"));        // если есть
-app.use("/api/categories", require("./routes/categories.routes"));
+// 🔍 Проверяем, подгрузилась ли модель
+console.log("📦 Модели:", Object.keys(db));
+
+// Роуты
+app.use("/api/users", require("./routes/User.routes.js"));
+app.use("/api/categories", require("./routes/categories.routes.js"));
 app.use("/api/products", require("./routes/product.routes.js"));
 
 // Базовый маршрут
