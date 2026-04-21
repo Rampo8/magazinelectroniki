@@ -1,9 +1,5 @@
-class User {
-  constructor(id, email) {
-    this.id = id
-    this.email = email
-  }
-}
+// src/store/user.js
+const API_URL = process.env.VUE_APP_API_URL || 'http://localhost:6868/api'
 
 export default {
   namespaced: true,
@@ -16,36 +12,76 @@ export default {
     setUser(state, payload) {
       state.user = payload
       if (payload) {
-        localStorage.setItem('user', JSON.stringify({ id: payload.id, email: payload.email }))
+        localStorage.setItem('user', JSON.stringify({
+          id: payload.id,
+          full_name: payload.full_name,
+          email: payload.email,
+          phone: payload.phone,
+          city: payload.city,
+          balance: payload.balance
+        }))
       } else {
         localStorage.removeItem('user')
       }
-    }
+    },
+    setUserBalance(state, newBalance) {
+  if (state.user) {
+    state.user.balance = newBalance
+    // Обновляем localStorage, чтобы баланс сохранялся при перезагрузке
+    localStorage.setItem('user', JSON.stringify(state.user))
+  }
+}
   },
 
   actions: {
-    // 🔥 Убран unused _password из деструктуризации
-    async registerUser({ commit }, { email }) {
+    // 🔹 Регистрация (просто отправляем данные)
+    async registerUser({ commit }, payload) {
       commit('shared/clearError', null, { root: true })
       commit('shared/setLoading', true, { root: true })
 
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      try {
+        const response = await fetch(`${API_URL}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
 
-      const user = new User(Date.now().toString(), email)
-      commit('setUser', user)
-      commit('shared/setLoading', false, { root: true })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Ошибка регистрации')
+
+        commit('setUser', data)
+        return data
+      } catch (err) {
+        commit('shared/setError', err.message, { root: true })
+        throw err
+      } finally {
+        commit('shared/setLoading', false, { root: true })
+      }
     },
 
-    // 🔥 Убран unused _password из деструктуризации
-    async loginUser({ commit }, { email }) {
+    // 🔹 Логин (простая проверка)
+    async loginUser({ commit }, payload) {
       commit('shared/clearError', null, { root: true })
       commit('shared/setLoading', true, { root: true })
 
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      try {
+        const response = await fetch(`${API_URL}/users/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)  // { phone/email, password }
+        })
 
-      const user = new User("user123", email)
-      commit('setUser', user)
-      commit('shared/setLoading', false, { root: true })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Ошибка входа')
+
+        commit('setUser', data)
+        return data
+      } catch (err) {
+        commit('shared/setError', err.message, { root: true })
+        throw err
+      } finally {
+        commit('shared/setLoading', false, { root: true })
+      }
     },
 
     logoutUser({ commit }) {
@@ -55,14 +91,19 @@ export default {
     autoLogin({ commit }) {
       const saved = localStorage.getItem('user')
       if (saved) {
-        const parsed = JSON.parse(saved)
-        commit('setUser', new User(parsed.id, parsed.email))
+        try {
+          commit('setUser', JSON.parse(saved))
+        } catch (e) {
+          localStorage.removeItem('user')
+        }
       }
     }
   },
 
   getters: {
-    user: (state) => state.user,
-    isUserLoggedIn: (state) => state.user !== null
+    user: state => state.user,
+    isUserLoggedIn: state => state.user !== null,
+    userId: state => state.user?.id,
+    userName: state => state.user?.full_name
   }
 }

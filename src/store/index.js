@@ -1,14 +1,14 @@
 import { createStore } from 'vuex'
-import ads from './ads'
 import user from './user'
 import shared from './shared'
-import orders from './orders' // 🔹 Импорт нового модуля
+import orders from './orders'
+import products from './products'  // 👈 импортируем
 
 export default createStore({
   modules: {
-    ads,
     user,
     shared,
-    orders // 🔹 Регистрация модуля
+    orders,
+    products  // 👈 регистрируем
   }
 })

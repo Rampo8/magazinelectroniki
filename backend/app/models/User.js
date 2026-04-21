@@ -1,9 +1,12 @@
+// backend/app/models/User.js
 'use strict';
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
+      // Ассоциации (если нужны)
+      // User.hasMany(models.Product, { foreignKey: 'user_id', as: 'products' });
     }
   }
 
@@ -11,6 +14,14 @@ module.exports = (sequelize, DataTypes) => {
     full_name: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    email: {              // 🔹 НОВОЕ ПОЛЕ
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,       // Уникальный email
+      validate: {
+        isEmail: { msg: 'Введите корректный email' }
+      }
     },
     password: {
       type: DataTypes.STRING,
@@ -21,11 +32,9 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
-    postal_code: {
-      type: DataTypes.STRING
-    },
-    city: {
-      type: DataTypes.STRING
+    city: {              // 🔹 Город (уже есть, но проверим)
+      type: DataTypes.STRING,
+      allowNull: true
     },
     balance: {
       type: DataTypes.DECIMAL(10, 2),
@@ -33,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     cart: {
-      type: DataTypes.JSON,        // или DataTypes.JSONB для PostgreSQL
+      type: DataTypes.JSON,
       defaultValue: []
     }
   }, {
@@ -41,7 +50,11 @@ module.exports = (sequelize, DataTypes) => {
     modelName: 'user',
     tableName: 'users',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['email'] },   // Индекс для быстрого поиска
+      { fields: ['phone'] }
+    ]
   });
 
   return User;

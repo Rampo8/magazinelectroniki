@@ -1,192 +1,180 @@
+// backend/app/controllers/Product.controller.js
+
 const db = require("../models");
-const { QueryTypes } = require('sequelize');
-const Product = db.product;
+const Product = db.Product;
+const User = db.User;
+const Category = db.Category;
+const { Op } = require("sequelize");
 
+// ==================== 🔹 CRUD ОПЕРАЦИИ ====================
+
+// ➕ Создать товар (POST /api/products)
 exports.create = async (req, res) => {
-    try {
-        const data = await Product.create(req.body);
-        res.status(201).send(data);
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
-    }
+  try {
+    const data = await Product.create(req.body);
+    res.status(201).send(data);
+  } catch (e) {
+    console.error("Create product error:", e);
+    res.status(500).send({ message: e.message });
+  }
 };
 
-exports.findAll = async (_req, res) => {
-    try {
-        const data = await Product.findAll();
-        res.send(data);
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
+// 📥 Получить все товары (GET /api/products)
+exports.findAll = async (req, res) => {
+  try {
+    const { search, category_id, brand, min_price, max_price } = req.query;
+    const where = {};
+
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { brand: { [Op.iLike]: `%${search}%` } },
+        { characteristics: { [Op.iLike]: `%${search}%` } }
+      ];
     }
+    if (category_id) where.category_id = category_id;
+    if (brand) where.brand = brand;
+    if (min_price || max_price) {
+      where.price = {};
+      if (min_price) where.price[Op.gte] = min_price;
+      if (max_price) where.price[Op.lte] = max_price;
+    }
+
+    const data = await Product.findAll({
+      where,
+      include: [{ model: Category, as: "category" }],
+      order: [["created_at", "DESC"]]
+    });
+    res.send(data);
+  } catch (e) {
+    console.error("FindAll products error:", e);
+    res.status(500).send({ message: e.message });
+  }
 };
 
+// 🔍 Получить один товар по ID (GET /api/products/:id)
 exports.findOne = async (req, res) => {
-    try {
-        const item = await Product.findByPk(req.params.id);
-        item ? res.send(item) : res.status(404).send({ message: "Not found" });
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
-    }
+  try {
+    const item = await Product.findByPk(req.params.id, {
+      include: [{ model: Category, as: "category" }]
+    });
+    if (!item) return res.status(404).send({ message: "Товар не найден" });
+    res.send(item);
+  } catch (e) {
+    console.error("FindOne product error:", e);
+    res.status(500).send({ message: e.message });
+  }
 };
 
+// ✏️ Обновить товар (PUT /api/products/:id)
 exports.update = async (req, res) => {
-    try {
-        const result = await Product.update(req.body, { where: { id: req.params.id } });
-        result[0] ? res.send({ message: "Updated" }) : res.status(404).send({ message: "Not found" });
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
-    }
+  try {
+    const [updated] = await Product.update(req.body, {
+      where: { id: req.params.id },
+      returning: true
+    });
+    if (!updated) return res.status(404).send({ message: "Товар не найден" });
+    const updatedProduct = await Product.findByPk(req.params.id);
+    res.send({ message: "Обновлено", product: updatedProduct });
+  } catch (e) {
+    console.error("Update product error:", e);
+    res.status(500).send({ message: e.message });
+  }
 };
 
+// 🗑️ Удалить товар (DELETE /api/products/:id)
 exports.delete = async (req, res) => {
-    try {
-        const result = await Product.destroy({ where: { id: req.params.id } });
-        result ? res.send({ message: "Deleted" }) : res.status(404).send({ message: "Not found" });
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
+  try {
+    const deleted = await Product.destroy({ where: { id: req.params.id } });
+    if (!deleted) return res.status(404).send({ message: "Товар не найден" });
+    res.send({ message: "Товар удалён" });
+  } catch (e) {
+    console.error("Delete product error:", e);
+    res.status(500).send({ message: e.message });
+  }
+};
+
+// ==================== 💰 ПОКУПКА (Buy) ====================
+
+// 💳 Купить товар (POST /api/products/:id/buy)
+exports.buy = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity = 1, user_id } = req.body;
+
+    // 1. Валидация данных
+    if (!user_id) {
+      return res.status(400).json({ message: "user_id обязателен" });
     }
-};
 
-exports.deleteAll = async (_req, res) => {
-    try {
-        const count = await Product.destroy({ where: {}, truncate: false });
-        res.send({ message: `${count} records deleted` });
-    } catch (e) { 
-        res.status(500).send({ message: e.message }); 
+    // 2. Находим товар
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ message: "Товар не найден" });
     }
-};
 
-// ==================== НЕСТАНДАРТНЫЕ ЗАПРОСЫ (7 методов с raw SQL) ====================
+    // Преобразуем значения в числа для безопасных вычислений
+    const price = Number(product.price) || 0;
+    const availableStock = Number(product.stock_quantity) || 0;
+    const buyQuantity = Number(quantity) || 1;
+    
+    const totalCost = price * buyQuantity;
 
-// 1. Поиск товаров по названию (частичное совпадение)
-exports.searchByName = async (req, res) => {
-  try {
-    const name = req.query.name;
-    if (!name) return res.status(400).send({ message: "Name parameter is required" });
+    // 3. Проверяем наличие на складе
+    if (availableStock < buyQuantity) {
+      return res.status(400).json({ 
+        message: `Недостаточно товара. Доступно: ${availableStock} шт.` 
+      });
+    }
 
-    const products = await db.sequelize.query(
-      'SELECT * FROM products WHERE name ILIKE :namePattern',
-      {
-        replacements: { namePattern: `%${name}%` },
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
+    // 4. Находим пользователя
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден" });
+    }
 
-// 2. Получить товары по категории
-exports.getByCategory = async (req, res) => {
-  try {
-    const category = req.query.category;
-    if (!category) return res.status(400).send({ message: "Category parameter is required" });
+    // 🔥 ИСПРАВЛЕНИЕ: Безопасная проверка баланса (Number() || 0)
+    const userBalance = Number(user.balance) || 0;
 
-    const products = await db.sequelize.query(
-      'SELECT * FROM products WHERE category ILIKE :categoryPattern',
-      {
-        replacements: { categoryPattern: `%${category}%` },
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
+    if (userBalance < totalCost) {
+      return res.status(400).json({ 
+        message: `Недостаточно средств. Нужно: ${totalCost.toFixed(2)} ₽, ваш баланс: ${userBalance.toFixed(2)} ₽` 
+      });
+    }
 
-// 3. Товары с низким остатком (меньше 10 штук)
-exports.getLowStockProducts = async (_req, res) => {
-  try {
-    const products = await db.sequelize.query(
-      'SELECT * FROM products WHERE quantity < 10 ORDER BY quantity ASC',
-      {
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
+    // 5. Атомарное списание (Транзакция)
+    // Если один запрос упадёт, всё отменится (деньги не спишутся, товар не уйдёт)
+    await db.sequelize.transaction(async (t) => {
+      // Списываем товар со склада
+      await Product.decrement("stock_quantity", { 
+        by: buyQuantity, 
+        where: { id }, 
+        transaction: t 
+      });
+      
+      // Списываем деньги с баланса пользователя
+      await User.decrement("balance", { 
+        by: totalCost, 
+        where: { id: user_id }, 
+        transaction: t 
+      });
+    });
 
-// 4. Товары в наличии (quantity > 0)
-exports.getInStockProducts = async (_req, res) => {
-  try {
-    const products = await db.sequelize.query(
-      'SELECT * FROM products WHERE quantity > 0 ORDER BY quantity DESC',
-      {
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
+    // 6. Получаем обновлённые данные для ответа
+    const updatedProduct = await Product.findByPk(id);
+    const updatedUser = await User.findByPk(user_id);
+    
+    // Снова используем Number() для безопасности ответа
+    const newBalance = Number(updatedUser.balance) || 0;
 
-// 5. Статистика по категориям
-exports.getCategoryStatistics = async (_req, res) => {
-  try {
-    const stats = await db.sequelize.query(
-      `SELECT 
-         category, 
-         COUNT(*) as product_count,
-         ROUND(AVG(price), 2) as average_price,
-         MIN(price) as min_price,
-         MAX(price) as max_price
-       FROM products 
-       GROUP BY category 
-       ORDER BY product_count DESC`,
-      { type: QueryTypes.SELECT }
-    );
-    res.send(stats);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
+    res.status(200).json({
+      message: "✅ Покупка успешна",
+      product: updatedProduct,
+      new_balance: newBalance
+    });
 
-// 6. Самые дорогие товары
-exports.getTopExpensiveProducts = async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 5;
-    const products = await db.sequelize.query(
-      'SELECT * FROM products ORDER BY price DESC LIMIT :limit',
-      {
-        replacements: { limit },
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
-  }
-};
-
-// 7. Недавно добавленные товары (за последний месяц)
-exports.getRecentProducts = async (_req, res) => {
-  try {
-    const products = await db.sequelize.query(
-      "SELECT * FROM products WHERE created_at > CURRENT_DATE - INTERVAL '1 month' ORDER BY created_at DESC",
-      {
-        type: QueryTypes.SELECT,
-        model: Product,
-        mapToModel: true
-      }
-    );
-    res.send(products);
-  } catch (e) { 
-    res.status(500).send({ message: e.message }); 
+  } catch (error) {
+    console.error("❌ Buy error:", error);
+    res.status(500).json({ message: error.message });
   }
 };

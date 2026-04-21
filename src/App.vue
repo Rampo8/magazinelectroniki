@@ -29,7 +29,7 @@
 
     <v-app-bar app dark color="primary">
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-      <v-toolbar-title><v-btn text to="/">Home</v-btn></v-toolbar-title>
+      <v-toolbar-title><v-btn text to="/">Управление товарами</v-btn></v-toolbar-title>
       <v-spacer></v-spacer>
       
       <v-toolbar-items class="hidden-sm-and-down">
@@ -38,7 +38,7 @@
         </v-btn>
 
         <v-btn v-if="isUserLoggedIn" text @click="onLogout">
-          <v-icon start icon="mdi-exit-to-app"></v-icon>Logout
+          <v-icon start icon="mdi-exit-to-app"></v-icon>Выйти
         </v-btn>
       </v-toolbar-items>
     </v-app-bar>
@@ -77,14 +77,13 @@ export default {
     links() {
       if (this.isUserLoggedIn) {
         return [
-          { title: "Orders", icon: "mdi-bookmark-multiple-outline", url: "/orders" },
-          { title: "New ad", icon: "mdi-note-plus-outline", url: "/new" },
-          { title: "My ads", icon: "mdi-view-list-outline", url: "/list" }
+          { title: "Товары", icon: "mdi-note-plus-outline", url: "/ad" },
+          { title: "Корзина", icon: "mdi-view-list-outline", url: "/cart" }
         ]
       } else {
-        return [
-          { title: "Login", icon: "mdi-lock", url: "/login" },
-          { title: "Registration", icon: "mdi-face", url: "/registration" }
+        return [  
+          { title: "Войти", icon: "mdi-lock", url: "/login" },
+          { title: "Зарегестрироваться", icon: "mdi-face", url: "/register" }
         ]
       }
     }

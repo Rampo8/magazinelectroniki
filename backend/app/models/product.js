@@ -1,12 +1,20 @@
+// backend/app/models/Product.js
 'use strict';
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Product extends Model {
     static associate(models) {
-      Product.belongsTo(models.Category, {   // ✅ ОБЯЗАТЕЛЬНО
+      Product.belongsTo(models.Category, {
         foreignKey: 'category_id',
-        as: 'category'
+        as: 'category',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE'
+      });
+      Product.hasMany(models.OrderItem, {
+        foreignKey: 'product_id',
+        as: 'order_items',
+        onDelete: 'RESTRICT'
       });
     }
   }
@@ -14,27 +22,42 @@ module.exports = (sequelize, DataTypes) => {
   Product.init({
     name: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: { notEmpty: { msg: 'Название обязательно' } }
     },
-    description: DataTypes.TEXT,
+    brand: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     price: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
+      allowNull: false,
+      validate: { min: { args: [0], msg: 'Цена не может быть отрицательной' } }
     },
-    category_id: {   // ✅ добавь это поле
-      type: DataTypes.INTEGER,
-      allowNull: false
+    characteristics: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: {}
     },
-    quantity: {
+    stock_quantity: {
       type: DataTypes.INTEGER,
-      defaultValue: 0
+      defaultValue: 0,
+      validate: { min: { args: [0], msg: 'Остаток не может быть отрицательным' } }
+    },
+    category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'categories', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
     }
   }, {
     sequelize,
     modelName: 'Product',
     tableName: 'products',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    freezeTableName: false
   });
 
   return Product;

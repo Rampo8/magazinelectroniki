@@ -3,56 +3,115 @@
     <v-row justify="center">
       <v-col cols="12" sm="8" lg="6">
         <v-card class="elevation-12">
-          <v-toolbar dark color="primary">
-            <v-toolbar-title>Registration</v-toolbar-title>
+          <v-toolbar dark color="secondary">
+            <v-toolbar-title>Регистрация</v-toolbar-title>
           </v-toolbar>
           
           <v-card-text>
-            <v-form v-model="valid" ref="form" lazy-validation>
+            <v-alert 
+              v-if="error" 
+              type="error" 
+              variant="tonal" 
+              closable
+              @click:close="clearError"
+              class="mb-4"
+            >
+              {{ error }}
+            </v-alert>
+
+            <v-form v-model="valid" ref="form" lazy-validation @keyup.enter="onSubmit">
+              
+              <!-- 🔹 Полное имя -->
               <v-text-field
                 prepend-icon="mdi-account"
-                name="email"
-                label="Email"
+                label="Полное имя *"
+                v-model="form.full_name"
+                :rules="[v => !!v || 'Имя обязательно']"
+                :disabled="loading"
+                required
+              />
+              
+              <!-- 🔹 Email (НОВОЕ) -->
+              <v-text-field
+                prepend-icon="mdi-email"
+                label="Email *"
                 type="email"
-                v-model="email"
+                v-model="form.email"
                 :rules="emailRules"
                 :disabled="loading"
-              ></v-text-field>
+                required
+              />
               
+              <!-- 🔹 Телефон -->
               <v-text-field
-                prepend-icon="mdi-lock"
-                name="password"
-                label="Password"
-                type="password"
-                v-model="password"
-                :rules="passwordRules"
+                prepend-icon="mdi-phone"
+                label="Телефон *"
+                v-model="form.phone"
+                :rules="[
+                  v => !!v || 'Телефон обязателен',
+                  v => /^[\d\+\-\(\)\s]{10,}$/.test(v) || 'Введите корректный номер'
+                ]"
                 :disabled="loading"
-              ></v-text-field>
+                required
+              />
               
+              <!-- 🔹 Город (НОВОЕ - обязательное) -->
+              <v-text-field
+                prepend-icon="mdi-city"
+                label="Город *"
+                v-model="form.city"
+                :rules="[v => !!v || 'Город обязателен']"
+                :disabled="loading"
+                required
+              />
+              
+              <!-- 🔹 Почтовый индекс (опционально) --
+              
+              <-- 🔹 Пароль -->
               <v-text-field
                 prepend-icon="mdi-lock"
-                name="confirm-password"
-                label="Confirm Password"
-                type="password"
-                v-model="confirmPassword"
+                label="Пароль *"
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                :rules="passwordRules"
+                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                @click:append="showPassword = !showPassword"
+                :disabled="loading"
+                required
+              />
+              
+              <!-- 🔹 Подтверждение пароля -->
+              <v-text-field
+                prepend-icon="mdi-lock-check"
+                label="Повторите пароль *"
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.confirmPassword"
                 :rules="confirmPasswordRules"
                 :disabled="loading"
-              ></v-text-field>
+                required
+              />
+              
             </v-form>
           </v-card-text>
           
           <v-card-actions>
-            <v-spacer></v-spacer>
-            <!-- 🔹 Кнопка с loading и disabled -->
+            <v-spacer />
             <v-btn
-              color="primary"
+              color="secondary"
               @click="onSubmit"
               :loading="loading"
               :disabled="!valid || loading"
+              block
             >
-              Create Account
+              Зарегистрироваться
             </v-btn>
           </v-card-actions>
+
+          <v-card-text class="text-center">
+            <router-link to="/login" class="text-decoration-none">
+              Уже есть аккаунт? Войти
+            </router-link>
+          </v-card-text>
         </v-card>
       </v-col>
     </v-row>
@@ -61,52 +120,67 @@
 
 <script>
 export default {
+  name: 'RegistrationView',
+  
   data() {
     return {
-      email: "",
-      password: "",
-      confirmPassword: "",
+      form: {
+        full_name: '',
+        email: '',        // 🔹 Добавили
+        phone: '',
+        city: '',         // 🔹 Добавили
+        postal_code: '',
+        password: '',
+        confirmPassword: ''
+      },
+      showPassword: false,
       valid: false,
       emailRules: [
-        v => !!v || 'E-mail is required',
-        v => /.+@.+\..+/.test(v) || 'E-mail must be valid'
+        v => !!v || 'Email обязателен',
+        v => /.+@.+\..+/.test(v) || 'Введите корректный email'
       ],
       passwordRules: [
-        v => !!v || 'Password is required',
-        v => (v && v.length >= 6) || 'Password must be more or equal than 6 characters'
+        v => !!v || 'Пароль обязателен',
+        v => (v && v.length >= 6) || 'Минимум 6 символов'
       ],
       confirmPasswordRules: [
-        v => !!v || 'Password confirmation is required',
-        v => v === this.password || 'Passwords should match'
+        v => !!v || 'Подтвердите пароль',
+        v => v === this.form.password || 'Пароли не совпадают'
       ]
     }
   },
   
   computed: {
-    // 🔹 Получение loading из shared module
     loading() {
       return this.$store.getters['shared/loading']
+    },
+    error() {
+      return this.$store.getters['shared/error']
     }
   },
   
   methods: {
     async onSubmit() {
       if (this.$refs.form.validate()) {
-        const user = {
-          email: this.email,
-          password: this.password
+        const userData = {
+          full_name: this.form.full_name,
+          email: this.form.email,      // 🔹 Отправляем email
+          phone: this.form.phone,
+          city: this.form.city,        // 🔹 Отправляем city
+          postal_code: this.form.postal_code || null,
+          password: this.form.password
         }
         
         try {
-          // 🔹 Dispatch с async/await
-          await this.$store.dispatch('user/registerUser', user)
-          // 🔹 Успех — редирект
-          this.$router.push("/")
+          await this.$store.dispatch('user/registerUser', userData)
+          this.$router.push('/login')
         } catch (err) {
-          // 🔹 Ошибка обрабатывается в store и отображается через snackbar
-          console.log(err)
+          console.error('Registration failed:', err)
         }
       }
+    },
+    clearError() {
+      this.$store.commit('shared/clearError')
     }
   }
 }

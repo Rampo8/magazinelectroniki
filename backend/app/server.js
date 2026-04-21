@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsDoc = require('swagger-jsdoc');
 dotenv.config();
 
 const app = express();
@@ -45,10 +46,10 @@ db.sequelize.sync({ alter: true })
 console.log("📦 Модели:", Object.keys(db));
 
 // Роуты
-app.use("/api/users", require("./routes/User.routes.js"));
+app.use("/api/users", require("./routes/User.routes.js"));        // ✅ app/routes/
 app.use("/api/categories", require("./routes/categories.routes.js"));
-app.use("/api/products", require("./routes/product.routes.js"));
-
+app.use("/api/products", require("./routes/product.routes.js"));   // ✅ singular → plural
+app.use("/api/orders", require("./routes/order.routes.js"));
 // Базовый маршрут
 app.get("/", (req, res) => {
   res.json({ message: "Магазин электроники API работает!" });
@@ -59,5 +60,24 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });
+// Swagger setup
+const swaggerOptions = {
+  swaggerDefinition: {
+    myapi: '3.0.0',
+    info: {
+      title: 'Trade-APP API',
+      version: '1.0.0',
+      description: 'API documentation',
+    },
+    servers: [
+      {
+        url: 'http://localhost:${PORT}',
+      },
+    ],
+  },
+  apis: ['./routes/*.routes.js'], // files containing annotations as above
+};
 
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 module.exports = app;

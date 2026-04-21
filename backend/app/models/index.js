@@ -35,6 +35,8 @@ const DataTypes = Sequelize.DataTypes;
 db.User = require("./User.js")(sequelize, DataTypes);
 db.Category = require("./category.js")(sequelize, DataTypes);
 db.Product = require("./product.js")(sequelize, DataTypes);
+db.Order = require("./Order.js")(sequelize, DataTypes);
+db.OrderItem = require("./OrderItem.js")(sequelize, DataTypes);
 
 // Ассоциации
 Object.keys(db).forEach(modelName => {
