@@ -7,6 +7,7 @@ const ProductsList = () => import('@/views/Ads/AdListView.vue')
 const AdView = () => import('@/views/Ads/AdView.vue')
 const LoginView = () => import('@/views/Auth/LoginView.vue')
 const RegistrationView = () => import('@/views/Auth/RegistrationView.vue')
+const Cart = () => import('@/views/Ads/NewAdView.vue')
 
 const routes = [
   {
@@ -15,17 +16,19 @@ const routes = [
     redirect: '/products'
   },
   {
+    path: '/ad',
+    name: 'AdView',
+    component: AdView
+  },
+    {
+    path: '/cart',
+    name: 'cart',
+    component: Cart
+  },
+    {
     path: '/products',
     name: 'ProductsList',
     component: ProductsList
-  },
-  {
-    // ✅ Твой маршрут для детального просмотра
-    path: '/ad',           
-    name: 'AdView',
-    component: AdView,
-    props: true,               // ✅ Передаёт id как prop в компонент (опционально)
-    meta: { requiresAuth: false }
   },
   {
     path: '/login',
@@ -39,7 +42,7 @@ const routes = [
   },
    
   {
-    path: '/cart',
+    path: '/orders',
     name: 'Cart',
     component: () => import('@/views/User/OrdersView.vue'),
     

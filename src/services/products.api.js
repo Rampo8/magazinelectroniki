@@ -2,7 +2,6 @@
 import axios from 'axios'
 
 const api = axios.create({
-  // ✅ Точный URL твоего бэкенда (без слэша в конце)
   baseURL: process.env.VUE_APP_API_URL || 'http://localhost:6868/api',
   headers: { 'Content-Type': 'application/json' }
 })

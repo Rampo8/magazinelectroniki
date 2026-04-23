@@ -1,4 +1,3 @@
-// backend/app/controllers/Category.controller.js
 const db = require("../models");
 const Category = db.Category;
 

@@ -29,7 +29,7 @@
 
     <v-app-bar app dark color="primary">
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-      <v-toolbar-title><v-btn text to="/">Управление товарами</v-btn></v-toolbar-title>
+      <v-toolbar-title><v-btn text to="/">Добовление товара</v-btn></v-toolbar-title>
       <v-spacer></v-spacer>
       
       <v-toolbar-items class="hidden-sm-and-down">
@@ -77,8 +77,9 @@ export default {
     links() {
       if (this.isUserLoggedIn) {
         return [
-          { title: "Товары", icon: "mdi-note-plus-outline", url: "/ad" },
-          { title: "Корзина", icon: "mdi-view-list-outline", url: "/cart" }
+          { title: "Управление Товарами  ", url: "/ad" },
+          { title: "Корзина", url: "/cart" },
+          { title: "Каталог",  url: "/orders" }
         ]
       } else {
         return [  

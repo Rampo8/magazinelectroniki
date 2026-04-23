@@ -53,17 +53,17 @@
             </v-chip>
           </v-card-text>
           
-          <!-- Кнопка действия -->
+          <!-- 🔹 Кнопка: Добавить в корзину -->
           <v-card-actions class="mt-auto pt-2">
             <v-btn 
               color="primary" 
               variant="outlined"
               :disabled="product.stock_quantity <= 0 || loading"
-              :loading="buyingProductId === product.id"
-              @click="handleAction(product)"
+              :loading="addingToCartId === product.id"
+              @click="handleAddToCart(product)"
               block
             >
-              🛒 Купить
+              ➕ В корзину
             </v-btn>
           </v-card-actions>
           
@@ -88,7 +88,7 @@ export default {
   data() {
     return {
       snackbar: { show: false, text: '', color: 'success' },
-      buyingProductId: null  // Для блокировки кнопки во время запроса
+      addingToCartId: null  // 🔹 ID товара, который добавляется в корзину
     }
   },
   
@@ -117,8 +117,8 @@ export default {
     showSuccess(text) { this.snackbar = { show: true, text, color: 'success' } },
     showError(text) { this.snackbar = { show: true, text, color: 'error' } },
     
-    // 🔹 Действие при нажатии кнопки
-    async handleAction(product) {
+    // 🔹 Добавление в корзину (вместо прямой покупки)
+    async handleAddToCart(product) {
       // Проверка наличия
       if (product.stock_quantity <= 0) {
         return this.showError('Товара нет в наличии')
@@ -127,31 +127,32 @@ export default {
       // Проверка авторизации
       const user = this.$store.getters['user/user']
       if (!user) {
-        this.showError('Войдите, чтобы купить товар')
+        this.showError('Войдите, чтобы добавить товар в корзину')
         this.$router.push('/login')
         return
       }
       
-      this.buyingProductId = product.id  // Блокируем кнопку
+      this.addingToCartId = product.id  // 🔹 Блокируем кнопку
       
       try {
-        // 🔹 Прямая покупка через API (списание баланса + остатка)
-        await this.$store.dispatch('products/buyProduct', {
-          productId: product.id,
-          quantity: 1,
-          user_id: user.id  // ✅ Обязательно передаём user_id!
+        // 🔹 Добавляем в корзину через orders/addToCart
+        // user_id берётся из стора внутри экшена
+        await this.$store.dispatch('orders/addToCart', {
+          product_id: product.id,
+          quantity: 1
+          // ✅ user_id добавится автоматически в экшене
         })
         
-        this.showSuccess(`✅ "${product.name}" успешно куплен!`)
+        this.showSuccess(`✅ "${product.name}" добавлен в корзину 🛒`)
         
-        // Обновляем список товаров, чтобы показать новый остаток
-        await this.$store.dispatch('products/fetchProducts')
+        // 🔹 Опционально: обновить товар, если нужно показать актуальный остаток
+        // (если бэкенд резервирует товар при добавлении в корзину)
+        // await this.$store.dispatch('products/fetchProducts')
         
       } catch (err) {
-        // Показываем ошибку от бэкенда или стандартную
-        this.showError(err.message || 'Ошибка при покупке')
+        this.showError(err.message || 'Ошибка при добавлении в корзину')
       } finally {
-        this.buyingProductId = null  // Разблокируем кнопку
+        this.addingToCartId = null  // 🔹 Разблокируем кнопку
       }
     }
   }
