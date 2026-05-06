@@ -290,8 +290,6 @@ export default {
       this.$store.commit('shared/clearError')
     },
     
-    // ==================== 🔹 МЕТОДЫ РЕДАКТИРОВАНИЯ ====================
-    
     // 🔹 Начать редактирование товара
     startEdit(product) {
       this.editingProductId = product.id
@@ -328,7 +326,7 @@ export default {
           throw new Error(err.message || 'Ошибка обновления')
         }
         
-        // ✅ Обновляем товар в Vuex
+        // Обновляем товар в Vuex
         await this.$store.dispatch('products/fetchProducts')
         
         this.showSuccess('Товар обновлён!')

@@ -3,7 +3,7 @@
     <v-navigation-drawer app v-model="drawer">
       <v-list-item>
         <v-list-item-content>
-          <v-list-item-title class="title">КИПУ</v-list-item-title>
+          <v-list-item-title class="title">Магазин Электроники</v-list-item-title>
           <v-list-item-subtitle>Учебный проект</v-list-item-subtitle>
         </v-list-item-content>
       </v-list-item>
@@ -62,7 +62,7 @@ export default {
     return {
       drawer: false,
       showError: false
-      // 🔥 УДАЛЕНО: links отсюда, чтобы не дублировать ключ в computed
+      
     }
   },
   

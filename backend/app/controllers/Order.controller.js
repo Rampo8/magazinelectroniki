@@ -21,8 +21,50 @@ exports.getCart = async (req, res) => {
     }
     res.json(order);
   } catch (e) {
-    console.error('❌ getCart Error:', e);
+    console.error(' getCart Error:', e);
     res.status(500).json({ message: e.message });
+  }
+};
+exports.cancelOrder = async (req, res) => {
+  const { orderId } = req.params; // или req.body.orderId, в зависимости от вашего маршрута
+  const t = await sequelize.transaction(); // 🔒 Открываем транзакцию
+
+  try {
+    const order = await Order.findByPk(orderId, { 
+      transaction: t, 
+      lock: t.LOCK.UPDATE // Блокируем запись, чтобы не было гонки данных
+    });
+
+    if (!order) throw new Error('Заказ не найден');
+    if (order.status !== 'new') throw new Error('Можно отменить только заказ со статусом "Новый"');
+
+    // 🔹 Возвращаем остатки товаров на склад
+    if (order.items && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const product = await Product.findByPk(item.product_id, { 
+          transaction: t, 
+          lock: t.LOCK.UPDATE 
+        });
+
+        if (product) {
+          // 🔧 Замените 'quantity' на имя вашего поля остатков (например, 'stock', 'count', 'amount')
+          const currentQty = parseFloat(product.quantity) || 0;
+          product.quantity = currentQty + item.quantity;
+          await product.save({ transaction: t });
+        }
+      }
+    }
+
+    // 🔹 Меняем статус заказа
+    order.status = 'cancelled';
+    await order.save({ transaction: t });
+
+    await t.commit(); // ✅ Применяем все изменения
+    res.json({ success: true, message: 'Заказ отменён, товары возвращены на склад' });
+
+  } catch (err) {
+    await t.rollback(); // ❌ Откатываем всё при ошибке
+    res.status(400).json({ message: err.message || 'Ошибка отмены заказа' });
   }
 };
 exports.addToCart = async (req, res) => {
@@ -50,7 +92,7 @@ exports.addToCart = async (req, res) => {
     });
     res.json(updatedOrder);
   } catch (e) {
-    console.error('❌ addToCart Error:', e);
+    console.error(' addToCart Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -86,7 +128,7 @@ exports.checkout = async (req, res) => {
 
     res.json({ message: 'Заказ оформлен', order });
   } catch (e) {
-    console.error('❌ checkout Error:', e);
+    console.error(' checkout Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -127,7 +169,7 @@ exports.removeFromCart = async (req, res) => {
     await item.destroy();
     res.json({ message: 'Удалено' });
   } catch (e) {
-    console.error('❌ removeFromCart Error:', e);
+    console.error(' removeFromCart Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -151,10 +193,10 @@ exports.getUserOrders = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    console.log(`✅ [getUserOrders] Найдено записей: ${orders.length}`);
+    console.log(` [getUserOrders] Найдено записей: ${orders.length}`);
     res.json(orders);
   } catch (e) {
-    console.error('❌ getUserOrders Error:', e);
+    console.error(' getUserOrders Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -171,7 +213,7 @@ exports.getOrderById = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Заказ не найден' });
     res.json(order);
   } catch (e) {
-    console.error('❌ getOrderById Error:', e);
+    console.error(' getOrderById Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -186,7 +228,7 @@ exports.updateOrderStatus = async (req, res) => {
     await order.update({ status });
     res.json(order);
   } catch (e) {
-    console.error('❌ updateOrderStatus Error:', e);
+    console.error(' updateOrderStatus Error:', e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -200,7 +242,7 @@ exports.deleteOrder = async (req, res) => {
     await order.destroy();
     res.json({ message: 'Заказ удалён' });
   } catch (e) {
-    console.error('❌ deleteOrder Error:', e);
+    console.error(' deleteOrder Error:', e);
     res.status(500).json({ message: e.message });
   }
 };

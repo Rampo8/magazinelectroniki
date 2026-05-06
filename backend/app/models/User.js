@@ -5,8 +5,6 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-      // Ассоциации (если нужны)
-      // User.hasMany(models.Product, { foreignKey: 'user_id', as: 'products' });
     }
   }
 
@@ -15,10 +13,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    email: {              // 🔹 НОВОЕ ПОЛЕ
+    email: {             
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,       // Уникальный email
+      unique: true,       
       validate: {
         isEmail: { msg: 'Введите корректный email' }
       }
@@ -32,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
-    city: {              // 🔹 Город (уже есть, но проверим)
+    city: {              
       type: DataTypes.STRING,
       allowNull: true
     },
@@ -52,7 +50,7 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: true,
     underscored: true,
     indexes: [
-      { fields: ['email'] },   // Индекс для быстрого поиска
+      { fields: ['email'] },   
       { fields: ['phone'] }
     ]
   });

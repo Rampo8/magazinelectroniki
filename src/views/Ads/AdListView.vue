@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <h2 class="mb-4">Управление товарqweами</h2>
+    <h2 class="mb-4">Управление товарами</h2>
 
     <v-alert v-if="error" type="error" closable @click:close="clearError">{{ error }}</v-alert>
 
@@ -77,7 +77,7 @@ const form = ref({
   brand: '',
   price: '', 
   stock: '',
-  characteristics: ''  // ✅ Просто текст (не JSON!)
+  characteristics: ''  
 })
 
 const loading = computed(() => 

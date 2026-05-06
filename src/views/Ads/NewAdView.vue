@@ -2,10 +2,34 @@
   <v-container>
     <h1 class="mb-4">📦 Мои заказы</h1>
 
-    <!-- Индикатор загрузки -->
+    <!-- 💰 Баланс пользователя -->
+    <v-card 
+      variant="outlined" 
+      class="mb-4 pa-3" 
+      color="primary" 
+      v-if="balanceLoading || userBalance !== null"
+    >
+      <div class="d-flex align-center justify-space-between">
+        <div>
+          <div class="text-caption text-medium-emphasis">Ваш баланс</div>
+          
+          <div v-if="balanceLoading" class="text-h6 font-weight-bold d-flex align-center">
+            <v-progress-circular size="20" width="2" indeterminate color="white" class="mr-2" />
+            Загрузка...
+          </div>
+          
+          <div v-else class="text-h6 font-weight-bold">
+            {{ formatCurrency(userBalance) }}
+          </div>
+        </div>
+        <v-icon icon="mdi-wallet" size="large" color="white" />
+      </div>
+    </v-card>
+
+    <!-- Индикатор загрузки заказов -->
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
-    <!-- Сообщение об ошибке -->
+    <!-- Сообщение об ошибке заказов -->
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable @click:close="clearError">
       {{ error }}
     </v-alert>
@@ -61,9 +85,7 @@
           </v-card-text>
 
           <v-card-actions>
-            <!-- Кнопки для КОРЗИНЫ -->
             <template v-if="order.status === 'cart'">
-              <!-- ✅ ИСПРАВЛЕНО: вызов без аргумента -->
               <v-btn variant="flat" color="primary" size="small" @click="checkout">
                 💳 Оформить
               </v-btn>
@@ -72,7 +94,6 @@
               </v-btn>
             </template>
             
-            <!-- Кнопки для ОФОРМЛЕННЫХ заказов -->
             <template v-else>
               <v-btn variant="text" size="small" @click="viewOrderDetails(order.id)">🔍 Подробнее</v-btn>
               <v-btn v-if="order.status === 'new'" variant="text" size="small" color="error" 
@@ -100,13 +121,34 @@ export default {
   computed: {
     orders() { return this.$store.getters["orders/orders"] || [] },
     loading() { return this.$store.getters["orders/isLoading"] },
-    error() { return this.$store.getters["orders/error"] }
+    error() { return this.$store.getters["orders/error"] },
+    
+    userBalance() { 
+      return this.$store.getters["user/balance"] 
+    },
+    
+    balanceLoading() {
+      const user = this.$store.getters["user/user"];
+      return user && this.userBalance === null;
+    }
   },
   async mounted() {
-    await this.$store.dispatch("orders/fetchOrders")
+    await Promise.all([
+      this.$store.dispatch("orders/fetchOrders"),
+      this.$store.dispatch("user/fetchBalance")
+    ])
   },
   methods: {
     clearError() { this.$store.commit("orders/CLEAR_ERROR") },
+    
+    formatCurrency(amount) {
+      return new Intl.NumberFormat('ru-RU', {
+        style: 'currency',
+        currency: 'RUB',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount || 0);
+    },
     
     async handleAddToCart(product) {
       try {
@@ -117,20 +159,49 @@ export default {
       }
     },
 
-    // 🔹 Оформить корзину (✅ ИСПРАВЛЕНО: убран параметр orderId)
+    // 🔹 🔥 ОБНОВЛЁННЫЙ МЕТОД: Списывает баланс локально
     async checkout() {
       if (!confirm('Оформить заказ? Товары будут списаны со склада.')) return;
+
       try {
-        // Экшен сам найдёт корзину по user_id из стора
-        await this.$store.dispatch("orders/checkout")
-        await this.$store.dispatch("orders/fetchOrders")
-        this.snackbar = { show: true, text: "🎉 Заказ оформлен!", color: "success" }
+        // 1. Находим корзину и считаем сумму
+        const cart = this.orders.find(o => o.status === 'cart');
+        if (!cart) throw new Error('Корзина не найдена');
+
+        const total = this.getOrderTotal(cart);
+        const currentBalance = parseFloat(this.$store.getters['user/balance'] || 0);
+
+        // 2. Проверка: хватает ли денег?
+        if (currentBalance < total) {
+          this.snackbar = { 
+            show: true, 
+            text: `❌ Недостаточно средств. Нужно ${this.formatCurrency(total)}`, 
+            color: 'error' 
+          };
+          return;
+        }
+
+        // 3. Отправляем заказ на сервер
+        await this.$store.dispatch("orders/checkout");
+
+        // 4. 🔹 СПИСЫВАЕМ БАЛАНС ЛОКАЛЬНО (Быстрое решение)
+        // Используем .toFixed(2) чтобы избежать ошибок плавающей точки (0.1 + 0.2 = 0.300000004)
+        const newBalance = parseFloat((currentBalance - total).toFixed(2));
+        this.$store.commit("user/setUserBalance", newBalance);
+
+        // 5. Обновляем список заказов
+        await this.$store.dispatch("orders/fetchOrders");
+
+        this.snackbar = { 
+          show: true, 
+          text: `🎉 Заказ оформлен! Списано ${this.formatCurrency(total)}`, 
+          color: "success" 
+        };
       } catch (e) {
-        this.snackbar = { show: true, text: e.message || "Ошибка оформления", color: "error" }
+        this.snackbar = { show: true, text: e.message || "Ошибка оформления", color: "error" };
       }
     },
 
-    // 🔹 Очистить корзину
     async clearCart(orderId) {
       if (!confirm('Удалить все товары из корзины?')) return;
       try {
@@ -172,22 +243,14 @@ export default {
 
     getStatusColor(status) {
       const colors = { 
-        cart: 'grey',
-        new: 'blue',
-        processing: 'orange',
-        cancelled: 'red',
-        completed: 'green'
+        cart: 'grey', new: 'blue', processing: 'orange', cancelled: 'red', completed: 'green'
       };
       return colors[status] || 'grey';
     },
 
     getStatusLabel(status) {
       const labels = {
-        cart: 'В корзине',
-        new: 'Новый',
-        processing: 'В обработке',
-        cancelled: 'Отменён',
-        completed: 'Доставлен'
+        cart: 'В корзине', new: 'Новый', processing: 'В обработке', cancelled: 'Отменён', completed: 'Доставлен'
       };
       return labels[status] || status;
     },

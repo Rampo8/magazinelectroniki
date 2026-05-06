@@ -24,17 +24,18 @@ export default {
         localStorage.removeItem('user')
       }
     },
+    
     setUserBalance(state, newBalance) {
-  if (state.user) {
-    state.user.balance = newBalance
-    // Обновляем localStorage, чтобы баланс сохранялся при перезагрузке
-    localStorage.setItem('user', JSON.stringify(state.user))
-  }
-}
+      if (state.user) {
+        state.user.balance = newBalance
+        // Обновляем localStorage, чтобы баланс сохранялся при перезагрузке
+        localStorage.setItem('user', JSON.stringify(state.user))
+      }
+    }
   },
 
   actions: {
-    // 🔹 Регистрация (просто отправляем данные)
+    // 🔹 Регистрация
     async registerUser({ commit }, payload) {
       commit('shared/clearError', null, { root: true })
       commit('shared/setLoading', true, { root: true })
@@ -59,7 +60,7 @@ export default {
       }
     },
 
-    // 🔹 Логин (простая проверка)
+    // 🔹 Логин
     async loginUser({ commit }, payload) {
       commit('shared/clearError', null, { root: true })
       commit('shared/setLoading', true, { root: true })
@@ -68,7 +69,7 @@ export default {
         const response = await fetch(`${API_URL}/users/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)  // { phone/email, password }
+          body: JSON.stringify(payload)
         })
 
         const data = await response.json()
@@ -84,10 +85,12 @@ export default {
       }
     },
 
+    // 🔹 Выход
     logoutUser({ commit }) {
       commit('setUser', null)
     },
 
+    // 🔹 Авто-вход при перезагрузке
     autoLogin({ commit }) {
       const saved = localStorage.getItem('user')
       if (saved) {
@@ -97,6 +100,37 @@ export default {
           localStorage.removeItem('user')
         }
       }
+    },
+    
+    // 🔹 🔥 НОВОЕ: Загрузка баланса с сервера
+    async fetchBalance({ commit, state }) {
+      // Если пользователь не авторизован — выходим
+      if (!state.user?.id) return;
+      
+      try {
+        // 🔧 ВАЖНО: Проверьте, какой URL использует ваш бэкенд!
+        // Вариант А: баланс текущего пользователя (без ID в URL)
+        const response = await fetch(`${API_URL}/user/balance`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        // Вариант Б: если нужен ID в URL, раскомментируйте строку ниже и закомментируйте Вариант А:
+        // const response = await fetch(`${API_URL}/users/${state.user.id}/balance`, { headers: { 'Content-Type': 'application/json' } });
+        
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || 'Не удалось загрузить баланс');
+        }
+        
+        const data = await response.json();
+        // 🔧 ВАЖНО: Проверьте имя поля в ответе (data.balance или data.amount)
+        commit('setUserBalance', data.balance);
+        return data.balance;
+      } catch (e) {
+        console.error('Fetch balance error:', e);
+        // Не пробрасываем ошибку, чтобы не ломать интерфейс, если баланс не критичен
+        return null;
+      }
     }
   },
 
@@ -104,6 +138,12 @@ export default {
     user: state => state.user,
     isUserLoggedIn: state => state.user !== null,
     userId: state => state.user?.id,
-    userName: state => state.user?.full_name
+    userName: state => state.user?.full_name,
+    
+    // 🔹 🔥 НОВОЕ: Геттер для баланса
+    balance: state => {
+      const val = state.user?.balance;
+      return val !== undefined && val !== null ? parseFloat(val) : null;
+    }
   }
 }

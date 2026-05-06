@@ -28,7 +28,6 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-// ✅ ВАЖНО: передаём Sequelize.DataTypes
 const DataTypes = Sequelize.DataTypes;
 
 // Подключаем модели
@@ -38,7 +37,6 @@ db.Product = require("./product.js")(sequelize, DataTypes);
 db.Order = require("./Order.js")(sequelize, DataTypes);
 db.OrderItem = require("./OrderItem.js")(sequelize, DataTypes);
 
-// Ассоциации
 Object.keys(db).forEach(modelName => {
   if (db[modelName]?.associate) {
     db[modelName].associate(db);
